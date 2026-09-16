@@ -1,0 +1,5 @@
+flask
+mutagen
+yt-dlp
+ytmusicapi
+Pillow

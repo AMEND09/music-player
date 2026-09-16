@@ -1,0 +1,16 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# local media library (large, stays on your machine / in a volume)
+backend/music/
+
+# generated index files (rebuilt by the indexer / reindex button)
+backend/indexes/tracks.json
+backend/indexes/plays.json
+
+# local databases and secrets
+*.db
+cookies.txt

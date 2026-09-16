@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>music player</title>
+<style>
+body { font-family: Arial; margin: 20px; background: #f2f2f2; }
+h1 { font-size: 22px; }
+h2 { font-size: 18px; margin-bottom: 5px; }
+.row { display: flex; overflow-x: auto; gap: 10px; padding: 10px 0; }
+.card { background: white; border: 1px solid #ccc; padding: 8px; width: 140px; flex: 0 0 auto; cursor: pointer; text-align: center; }
+.card:hover { background: #e6e6e6; }
+.card img { width: 120px; height: 120px; background: #ddd; }
+.card-link { text-decoration: none; color: black; }
+.yt { background: white; padding: 8px; border: 1px solid #ccc; margin-bottom: 5px; overflow: hidden; }
+.yt img { width: 120px; float: left; margin-right: 8px; background: #ddd; }
+.small { color: #666; font-size: 13px; }
+button { padding: 5px 10px; margin-right: 5px; }
+</style>
+</head>
+<body>
+
+<button onclick="reindex()">reindex</button>
+<span id="status" class="small"></span>
+
+<h2>download album</h2>
+<input id="ytq" placeholder="search artist - album..." style="width:60%;padding:6px">
+<button onclick="ytSearch()">search</button>
+<div id="dlstatus" class="small"></div>
+<div id="ytresults"></div>
+
+<h2>recently added</h2>
+<div class="row">
+{% for a in added %}
+<a class="card-link" href="/album/{{ a.name|urlencode }}">
+<div class="card">
+<img src="/art/album/{{ a.name|urlencode }}" onerror="this.style.display='none'">
+<br><b>{{ a.name }}</b><br><span class="small">{{ a.artist }} ({{ a.count }})</span>
+</div>
+</a>
+{% endfor %}
+</div>
+
+<h2>recently played</h2>
+{% if recent %}
+<div class="row">
+{% for a in recent %}
+<a class="card-link" href="/album/{{ a.name|urlencode }}">
+<div class="card">
+<img src="/art/album/{{ a.name|urlencode }}" onerror="this.style.display='none'">
+<br><b>{{ a.name }}</b><br><span class="small">{{ a.artist }} ({{ a.plays }} plays)</span>
+</div>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<p class="small">nothing played yet - open an album and press play</p>
+{% endif %}
+
+<h2>most played</h2>
+{% if top %}
+<div class="row">
+{% for a in top %}
+<a class="card-link" href="/album/{{ a.name|urlencode }}">
+<div class="card">
+<img src="/art/album/{{ a.name|urlencode }}" onerror="this.style.display='none'">
+<br><b>{{ a.name }}</b><br><span class="small">{{ a.artist }} ({{ a.plays }} plays)</span>
+</div>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<p class="small">nothing played yet - open an album and press play</p>
+{% endif %}
+
+<script>
+function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function ytSearch() {
+    let q = document.getElementById('ytq').value;
+    if (q == '') return;
+    let box = document.getElementById('ytresults');
+    box.innerHTML = 'searching...';
+    let res = await fetch('/search?q=' + encodeURIComponent(q));
+    let items = await res.json();
+    box.innerHTML = '';
+    for (let v of items) {
+        let div = document.createElement('div');
+        div.className = 'yt';
+        div.innerHTML = '<img src="' + v.thumb + '" onerror="this.style.display=\'none\'">' +
+            '<b>' + esc(v.title) + '</b><br><span class="small">' + esc(v.artist) + ' (' + esc(v.year) + ')</span><br>' +
+            '<button>download album</button>';
+        div.querySelector('button').onclick = (function(item) {
+            return function() { ytDownload(item); };
+        })(v);
+        box.appendChild(div);
+    }
+    if (items.length == 0) box.innerHTML = 'no results';
+}
+
+async function ytDownload(item) {
+    await fetch('/download', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({data: item.data})});
+    pollDl();
+}
+
+async function pollDl() {
+    let res = await fetch('/downloads');
+    let jobs = await res.json();
+    let box = document.getElementById('dlstatus');
+    let busy = false;
+    let html = '';
+    for (let j of jobs) {
+        html += esc(j.folder) + ': ' + esc(j.status) + ' ' + esc(j.message) + '<br>';
+        if (j.status == 'downloading') busy = true;
+    }
+    box.innerHTML = html;
+    if (busy) {
+        setTimeout(pollDl, 3000);
+    } else if (jobs.length > 0) {
+        location.reload();
+    }
+}
+
+async function reindex() {
+    document.getElementById('status').innerText = 'indexing...';
+    let res = await fetch('/reindex', {method: 'POST'});
+    let data = await res.json();
+    document.getElementById('status').innerText = 'indexed ' + data.count + ' tracks';
+    location.reload();
+}
+</script>
+
+</body>
+</html>

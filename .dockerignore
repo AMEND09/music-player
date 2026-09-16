@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.git/
+ytms/.git
+backend/music/
+backend/indexes/
+backend/__pycache__/
+*.db
+cookies.txt
+docker-compose.yml
+.gitignore

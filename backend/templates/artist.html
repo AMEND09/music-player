@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>{{ name }} - music player</title>
+<style>
+body { font-family: Arial; margin: 20px; background: #f2f2f2; }
+h1 { font-size: 22px; }
+h2 { font-size: 18px; }
+#player { background: white; padding: 10px; border: 1px solid #ccc; margin-bottom: 10px; overflow: hidden; }
+#cover { width: 60px; height: 60px; float: left; margin-right: 10px; background: #ddd; }
+#now { margin: 5px 0; font-weight: bold; }
+audio { width: 100%; margin-top: 5px; }
+.track { background: white; padding: 8px; border: 1px solid #ccc; margin-bottom: 5px; cursor: pointer; overflow: hidden; }
+.track:hover { background: #e6e6e6; }
+.track img { width: 40px; height: 40px; float: left; margin-right: 8px; background: #ddd; }
+.small { color: #666; font-size: 13px; }
+button { padding: 5px 10px; margin-right: 5px; }
+img.big { width: 150px; height: 150px; background: #ddd; }
+a { color: #0066cc; }
+</style>
+</head>
+<body>
+
+<a href="/">home</a>
+
+<br><br>
+<img class="big" src="/art/artist/{{ name|urlencode }}" onerror="this.style.display='none'">
+<h1>{{ name }}</h1>
+<p class="small">{{ albums|length }} albums</p>
+
+<div id="player">
+<img id="cover" style="display:none">
+<div id="now">pick a track</div>
+<audio id="audio" controls></audio>
+<br><br>
+<button onclick="prevTrack()">prev</button>
+<button onclick="nextTrack()">next</button>
+</div>
+
+{% for album_name, tracks in albums %}
+<h2><a href="/album/{{ album_name|urlencode }}">{{ album_name }}</a></h2>
+{% for t in tracks %}
+<div class="track" onclick="playTrack({{ t.id }})">
+<img src="/art/track/{{ t.id }}" onerror="this.style.display='none'">
+<b>{{ t.title }}</b><br><span class="small">{{ t.artist }} ({{ t.duration_ms // 60000 }}:{{ '%02d' % ((t.duration_ms // 1000) % 60) }})</span>
+</div>
+{% endfor %}
+{% endfor %}
+
+<script>
+let IDS = [{% for album_name, tracks in albums %}{% for t in tracks %}{{ t.id }},{% endfor %}{% endfor %}];
+let current = 0;
+
+async function playTrack(id) {
+    current = IDS.indexOf(id);
+    let res = await fetch('/tracks/' + id);
+    let t = await res.json();
+    document.getElementById('now').innerText = t.title + ' - ' + t.artist;
+    let cover = document.getElementById('cover');
+    cover.src = '/art/track/' + id;
+    cover.style.display = '';
+    cover.onerror = function() { cover.style.display = 'none'; };
+    let audio = document.getElementById('audio');
+    audio.src = '/stream/' + id;
+    audio.play();
+    fetch('/play/' + id, {method: 'POST'});
+}
+
+function nextTrack() {
+    if (IDS.length == 0) return;
+    current = (current + 1) % IDS.length;
+    playTrack(IDS[current]);
+}
+
+function prevTrack() {
+    if (IDS.length == 0) return;
+    current = (current - 1 + IDS.length) % IDS.length;
+    playTrack(IDS[current]);
+}
+
+document.getElementById('audio').onended = nextTrack;
+</script>
+
+</body>
+</html>

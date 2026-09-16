@@ -1,0 +1,8 @@
+services:
+  music-player:
+    build: .
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./backend/music:/app/backend/music
+      - ./backend/indexes:/app/backend/indexes
