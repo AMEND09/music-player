@@ -3,3 +3,4 @@ mutagen
 yt-dlp
 ytmusicapi
 Pillow
+rich

@@ -10,8 +10,9 @@ WORKDIR /app/backend
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 
-COPY ytms/ /app/ytms/
-RUN pip install --no-cache-dir --break-system-packages /app/ytms
+# ytms is pure python: copy it straight onto the path instead of a
+# pip setup.py install, which needs build isolation + setuptools
+COPY ytms/ytms /app/backend/ytms/
 
 COPY backend/ /app/backend/
 
